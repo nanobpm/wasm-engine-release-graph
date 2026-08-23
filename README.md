@@ -33,6 +33,25 @@ consumers (this is a live problem: `bojtos-kit` pins `engine-wasm ^0.3.0` while 
 published). This graph encodes that ordering and those gates so the sequence is reproducible instead
 of tribal knowledge.
 
+## Prior art / lineage
+
+This is the realisation of a design its author first sketched in 2020:
+[*Complex multi-repo builds with GitHub Actions and Camunda Cloud*](https://medium.com/@sitapati/complex-multi-repo-builds-with-github-actions-and-camunda-cloud-fa8e4c7abd26).
+That article named the exact problem this repo solves — *"how do I trigger a test run for downstream
+dependent packages when I publish a new image of the core API?"* — and rejected the exact
+anti-pattern (`repository_dispatch` webhooks: *"the rabbit hole of peer-to-peer choreography, with an
+attendant loss of visibility"*) in favour of a single orchestrating model: **"executable
+documentation of the system architecture that cannot go out of date."** That phrase is precisely
+what [`graph/release-graph.json`](graph/release-graph.json) is.
+
+What changed in six years is the substrate. The 2020 version bridged GitHub to **Camunda Cloud /
+Zeebe** over REST, with a bespoke [Zeebe GitHub Action](https://github.com/jwulf/zeebe-action) and
+message-correlation on a `buildid`. Here the orchestrator is a `DeliveryGraph` compiled to native
+BPMN running on the in-repo **WASM engine** — `agent` nodes in place of `repository_dispatch`
+callbacks, `wait` / npm-readiness probes in place of correlation messages, and the model itself is
+the versioned deliverable rather than a Modeler diagram that drifts. Same thesis; no external cloud,
+no REST bridge, no stale drawing.
+
 ## The graph
 
 10 `agent` (automated release + adopt work) · 7 `wait` (npm registry-propagation gates) · 0
