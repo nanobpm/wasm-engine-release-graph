@@ -18,9 +18,13 @@ The nano ecosystem roots in one Rust crate and fans out through **three differen
 
 | Train | Repo | Mechanism | Publishes |
 |---|---|---|---|
-| engine / bojtos | `Magikcraft/nano-bpm` + `nanobpm/bojtos` | manual tag + `bojtos-release.mjs` (**OTP**) | `engine-wasm`, `engine-testkit`, `bojtos-kit`, `bojtos-react` |
+| engine / bojtos | `Magikcraft/nano-bpm` + `nanobpm/bojtos` | tag + `bojtos-release.mjs` (**OIDC** trusted publishing) | `engine-wasm`, `engine-testkit`, `bojtos-kit`, `bojtos-react` |
 | urban | `nanobpm/nano-ide` | release-please (CI token) | `urban`, `workflow`, `urban-testkit` |
 | apps | `nano-workforce`, `console`, `urban-pr-review` | semantic-release / adopt PRs | the sinks |
+
+All three trains now publish via **OIDC / CI tokens** — no interactive OTP — so every publish is
+automatable. The graph is therefore **fully agentic**; the human-in-the-loop is the single
+approval-token gate at dispatch (below), not a per-publish stop.
 
 Cutting a coordinated release is **not** just tagging — it is bumping each downstream dependency
 **range** in the right order and *proving the range resolves to the new upstream* before publishing
@@ -31,18 +35,19 @@ of tribal knowledge.
 
 ## The graph
 
-10 `agent` (automated work) · 4 `human` (the OTP publishes that can't be automated) · 7 `wait`
-(npm registry-propagation gates). Rendered view — [`docs/graph.mmd`](docs/graph.mmd):
+10 `agent` (automated release + adopt work) · 7 `wait` (npm registry-propagation gates) · 0
+`human` — every publish is OIDC/CI-token, so the whole runbook is automatable. Rendered view —
+[`docs/graph.mmd`](docs/graph.mmd):
 
 ```mermaid
 flowchart TD
-  subgraph engine_bojtos["Magikcraft/nano-bpm + bojtos — OTP publishes (human)"]
-    ew-prep["🤖 tag engine-core · make console-wasm"] --> ew-publish(["🧑 OTP publish engine-wasm"]) --> ew-live{{"⏳ engine-wasm live"}}
-    et-bump["🤖 bump engine-wasm range"] --> et-publish(["🧑 OTP publish engine-testkit"]) --> et-live{{"⏳ engine-testkit live"}}
-    bk-bump["🤖 bump engine-wasm (caret-trap check)"] --> bk-publish(["🧑 OTP publish bojtos-kit"]) --> bk-live{{"⏳ bojtos-kit live"}}
-    br-bump["🤖 bump bojtos-kit range"] --> br-publish(["🧑 OTP publish bojtos-react"]) --> br-live{{"⏳ bojtos-react live"}}
+  subgraph engine_bojtos["Magikcraft/nano-bpm + bojtos — OIDC publishes"]
+    ew-release["🤖 tag engine-core · make console-wasm · cut engine-wasm"] --> ew-live{{"⏳ engine-wasm live"}}
+    et-release["🤖 bump engine-wasm range · cut engine-testkit"] --> et-live{{"⏳ engine-testkit live"}}
+    bk-release["🤖 bump engine-wasm (caret-trap check) · cut bojtos-kit"] --> bk-live{{"⏳ bojtos-kit live"}}
+    br-release["🤖 bump bojtos-kit range · cut bojtos-react"] --> br-live{{"⏳ bojtos-react live"}}
   end
-  subgraph urban_train["nanobpm/nano-ide — release-please (CI token, agentic)"]
+  subgraph urban_train["nanobpm/nano-ide — release-please (CI token)"]
     urban-release["🤖 cut urban"] --> urban-live{{"⏳ urban live"}}
     wf-bump["🤖 bump urban · cut workflow"] --> wf-live{{"⏳ workflow live"}}
     ut-bump["🤖 JOIN: bump ew+et+urban · cut urban-testkit"] --> ut-live{{"⏳ urban-testkit live"}}
@@ -52,9 +57,9 @@ flowchart TD
     adopt-nwf["🤖 adopt-nano-workforce"]
     adopt-upr["🤖 adopt-urban-pr-review"]
   end
-  ew-live --> et-bump
-  ew-live --> bk-bump
-  bk-live --> br-bump
+  ew-live --> et-release
+  ew-live --> bk-release
+  bk-live --> br-release
   ew-live --> ut-bump
   et-live --> ut-bump
   urban-live --> ut-bump
@@ -68,15 +73,17 @@ flowchart TD
 
 ### Node kinds
 
-- **🤖 `agent`** — a `senior:*` worker job does the mechanical work (bump the upstream range, catch
-  the caret trap, build + test, open/merge the release PR). Side-effecting.
-- **🧑 `human`** — a scheduled user task. Used **only** for the interactive **OTP** npm publishes on
-  the engine/bojtos train, which can't be automated. Answerable by a person *or* an agent.
+- **🤖 `agent`** — a `senior:*` worker job does the work (bump the upstream range, catch the caret
+  trap, build + test, cut/publish via OIDC, or open the downstream adopt PR). Side-effecting.
 - **⏳ `wait`** — a durable `npm` readiness probe: block the next cut until the upstream version is
   actually resolvable on the registry (the propagation-lag guard). Emits an `artifact` fact.
+- **🧑 `human`** — a scheduled user task. Not used here (every publish is automatable), but part of
+  the vocabulary: use it for any step that genuinely needs a person, answerable by a human *or* an
+  agent.
 
 Every `agent`/`connector` node is a **side effect**, so the whole graph is **parked at approval**
-until dispatched with its content-addressed approval token (see below).
+until dispatched with its content-addressed approval token (see below) — that single gate is the
+human-in-the-loop.
 
 ## Working with the graph
 
