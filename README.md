@@ -124,7 +124,7 @@ MERLIN_URL=http://127.0.0.1:3000 npm run preview     # validate + compile + show
 MERLIN_URL=http://127.0.0.1:3000 npm run dispatch    # preview, then launch with the approval token
 ```
 
-`preview` calls `previewDeliveryGraph`; `dispatch` calls `dispatchDeliveryGraph` with the graph's
+`preview` posts to `actions/delivery-graph/preview`; `dispatch` posts to `actions/delivery-graph/dispatch`
 digest as approval. A re-dispatch with the same graph is idempotent (short-circuits onto the
 in-flight run).
 

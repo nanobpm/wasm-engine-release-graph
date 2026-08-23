@@ -34,8 +34,9 @@ const post = async (op, body) => {
   return { status: res.status, json };
 };
 
-// Preview (parse + validate + compile, zero side effects).
-const preview = await post("previewDeliveryGraph", { graphJson });
+// Preview (parse + validate + compile + STAGE a proposal, zero dispatch/side effects).
+// The framework routes operations by their OpenAPI *path*, not their operationId.
+const preview = await post("actions/delivery-graph/preview", { graphJson });
 const p = preview.json;
 if (!p.ok) {
   console.error(`✗ preview rejected:${p.error ? " " + p.error : ""}`);
@@ -59,13 +60,15 @@ if (!DISPATCH) {
   process.exit(0);
 }
 
-// Dispatch: present the previewed digest as approval so a side-effecting graph actually launches.
-const run = await post("dispatchDeliveryGraph", { graphJson, approve: true });
+// Dispatch: the door is OPERATOR-ONLY and launches a STAGED proposal by its digest (the preview
+// above staged it). The operator presenting the digest IS the approval — there is no graphJson or
+// replayable token on this door (ADR 0005 Decision 7 / #460). Idempotent on the digest.
+const run = await post("actions/delivery-graph/dispatch", { digest: p.digest });
 const r = run.json;
 if (!r.ok) {
   console.error(`✗ dispatch failed:${r.error ? " " + r.error : ""}${r.message ? " " + r.message : ""}`);
   process.exit(1);
 }
-console.log(`\n✓ dispatched — status=${r.status} runKey=${r.runKey}`);
+console.log(`\n✓ dispatched — status=${r.status ?? run.status} runKey=${r.runKey}`);
 if (r.processInstanceKey) console.log(`  processInstanceKey=${r.processInstanceKey} processDefinitionId=${r.processDefinitionId}`);
 if (r.alreadyRunning) console.log("  (short-circuited onto an already-running instance — idempotent)");
