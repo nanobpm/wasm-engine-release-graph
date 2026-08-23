@@ -1,0 +1,27 @@
+{
+  "name": "@nanobpm/wasm-engine-release-graph",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A reusable, version-controlled Nano Workforce delivery graph that orchestrates a coordinated release of the WASM engine and everything downstream of it (engine-testkit, bojtos-kit/react, urban, workflow, urban-testkit) with the dependency bumps applied in topological order.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nanobpm/wasm-engine-release-graph.git"
+  },
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "render": "node scripts/render.mjs",
+    "render:check": "node scripts/render.mjs --check",
+    "schema": "node scripts/extract-schema.mjs",
+    "preview": "node scripts/preview.mjs",
+    "dispatch": "node scripts/preview.mjs --dispatch",
+    "check": "npm run validate && npm run render:check"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1"
+  },
+  "devDependencies": {
+    "yaml": "^2.5.0"
+  }
+}

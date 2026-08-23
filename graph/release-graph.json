@@ -1,0 +1,99 @@
+{
+  "name": "nano ecosystem release delivery graph (agentic)",
+  "nodes": [
+    { "id": "ew-prep", "kind": "agent",
+      "agent": { "jobType": "senior:feature", "prompt": "In Magikcraft/nano-bpm: tag engine-core, run `make console-wasm`, stage @nanobpm/engine-wasm for publish (bojtos-release.mjs). Open the release PR/branch." } },
+    { "id": "ew-publish", "kind": "human",
+      "human": { "prompt": "OTP publish @nanobpm/engine-wasm to npm (interactive 2FA)." },
+      "emits": [{ "name": "version", "type": "string" }] },
+    { "id": "ew-live", "kind": "wait",
+      "wait": { "kind": "npm", "target": "@nanobpm/engine-wasm", "onTimeout": "escalate" },
+      "emits": [{ "name": "artifact", "type": "artifact" }] },
+
+    { "id": "et-bump", "kind": "agent",
+      "agent": { "jobType": "senior:feature", "prompt": "In clients/engine-testkit: bump @nanobpm/engine-wasm range to the new version (assert it resolves past the 0.x caret trap), build+test, open the release PR." } },
+    { "id": "et-publish", "kind": "human",
+      "human": { "prompt": "OTP publish @nanobpm/engine-testkit to npm (interactive 2FA)." },
+      "emits": [{ "name": "version", "type": "string" }] },
+    { "id": "et-live", "kind": "wait",
+      "wait": { "kind": "npm", "target": "@nanobpm/engine-testkit", "onTimeout": "escalate" },
+      "emits": [{ "name": "artifact", "type": "artifact" }] },
+
+    { "id": "bk-bump", "kind": "agent",
+      "agent": { "jobType": "senior:feature", "prompt": "In bojtos/bojtos-kit: bump @nanobpm/engine-wasm range (caret-trap check: must resolve to the new engine-wasm, not <0.4), build+test, open the release PR." } },
+    { "id": "bk-publish", "kind": "human",
+      "human": { "prompt": "OTP publish @nanobpm/bojtos-kit to npm (interactive 2FA)." },
+      "emits": [{ "name": "version", "type": "string" }] },
+    { "id": "bk-live", "kind": "wait",
+      "wait": { "kind": "npm", "target": "@nanobpm/bojtos-kit", "onTimeout": "escalate" },
+      "emits": [{ "name": "artifact", "type": "artifact" }] },
+
+    { "id": "br-bump", "kind": "agent",
+      "agent": { "jobType": "senior:feature", "prompt": "In bojtos/bojtos-react: bump @nanobpm/bojtos-kit range, build+test, open the release PR." } },
+    { "id": "br-publish", "kind": "human",
+      "human": { "prompt": "OTP publish @nanobpm/bojtos-react to npm (interactive 2FA)." },
+      "emits": [{ "name": "version", "type": "string" }] },
+    { "id": "br-live", "kind": "wait",
+      "wait": { "kind": "npm", "target": "@nanobpm/bojtos-react", "onTimeout": "escalate" },
+      "emits": [{ "name": "artifact", "type": "artifact" }] },
+
+    { "id": "urban-release", "kind": "agent",
+      "agent": { "jobType": "senior:feature", "prompt": "In nanobpm/nano-ide: cut @nanobpm/urban via release-please (merge its release PR — CI-token publish, no OTP)." } },
+    { "id": "urban-live", "kind": "wait",
+      "wait": { "kind": "npm", "target": "@nanobpm/urban", "onTimeout": "escalate" },
+      "emits": [{ "name": "artifact", "type": "artifact" }] },
+
+    { "id": "wf-bump", "kind": "agent",
+      "agent": { "jobType": "senior:feature", "prompt": "In nano-ide/packages/workflow: bump @nanobpm/urban range, then merge the release-please PR for @nanobpm/workflow (CI-token publish)." } },
+    { "id": "wf-live", "kind": "wait",
+      "wait": { "kind": "npm", "target": "@nanobpm/workflow", "onTimeout": "escalate" },
+      "emits": [{ "name": "artifact", "type": "artifact" }] },
+
+    { "id": "ut-bump", "kind": "agent",
+      "agent": { "jobType": "senior:feature", "prompt": "JOIN: in nano-ide/packages/urban-testkit bump @nanobpm/engine-wasm + engine-testkit + urban ranges (fix the duplicate urban range entry), build+test, then merge the release-please PR for @nanobpm/urban-testkit (CI-token publish)." } },
+    { "id": "ut-live", "kind": "wait",
+      "wait": { "kind": "npm", "target": "@nanobpm/urban-testkit", "onTimeout": "escalate" },
+      "emits": [{ "name": "artifact", "type": "artifact" }] },
+
+    { "id": "adopt-console", "kind": "agent",
+      "agent": { "jobType": "senior:feature", "prompt": "Sink: in nanobpmn/console bump @nanobpm/bojtos-kit + bojtos-react + engine-wasm ranges, build+test, open the adopt PR." } },
+    { "id": "adopt-nano-workforce", "kind": "agent",
+      "agent": { "jobType": "senior:feature", "prompt": "Sink: in nano-workforce bump @nanobpm/urban + urban-testkit + workflow ranges, build+test, release @nanobpm/nano-workforce (semantic-release, CI-token)." } },
+    { "id": "adopt-urban-pr-review", "kind": "agent",
+      "agent": { "jobType": "senior:feature", "prompt": "Sink: in urban-pr-review-codefirst bump the @nanobpm/urban import in deno.json, run deno task check + gen:check, open the adopt PR." } }
+  ],
+  "edges": [
+    { "from": "ew-prep", "to": "ew-publish" },
+    { "from": "ew-publish.version", "to": "ew-live" },
+
+    { "from": "ew-live.artifact", "to": "et-bump" },
+    { "from": "et-bump", "to": "et-publish" },
+    { "from": "et-publish.version", "to": "et-live" },
+
+    { "from": "ew-live.artifact", "to": "bk-bump" },
+    { "from": "bk-bump", "to": "bk-publish" },
+    { "from": "bk-publish.version", "to": "bk-live" },
+
+    { "from": "bk-live.artifact", "to": "br-bump" },
+    { "from": "br-bump", "to": "br-publish" },
+    { "from": "br-publish.version", "to": "br-live" },
+
+    { "from": "urban-release", "to": "urban-live" },
+    { "from": "urban-live.artifact", "to": "wf-bump" },
+    { "from": "wf-bump", "to": "wf-live" },
+
+    { "from": "ew-live.artifact", "to": "ut-bump" },
+    { "from": "et-live.artifact", "to": "ut-bump" },
+    { "from": "urban-live.artifact", "to": "ut-bump" },
+    { "from": "ut-bump", "to": "ut-live" },
+
+    { "from": "br-live.artifact", "to": "adopt-console" },
+    { "from": "ew-live.artifact", "to": "adopt-console" },
+
+    { "from": "ut-live.artifact", "to": "adopt-nano-workforce" },
+    { "from": "wf-live.artifact", "to": "adopt-nano-workforce" },
+    { "from": "urban-live.artifact", "to": "adopt-nano-workforce" },
+
+    { "from": "urban-live.artifact", "to": "adopt-urban-pr-review" }
+  ]
+}

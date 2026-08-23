@@ -1,0 +1,47 @@
+flowchart TD
+  %% nano ecosystem release delivery graph (agentic)
+  adopt-console["🤖 agent: adopt-console"]
+  adopt-nano-workforce["🤖 agent: adopt-nano-workforce"]
+  adopt-urban-pr-review["🤖 agent: adopt-urban-pr-review"]
+  bk-bump["🤖 agent: bk-bump"]
+  bk-live{{"⏳ wait: bk-live"}}
+  bk-publish(["🧑 human: bk-publish"])
+  br-bump["🤖 agent: br-bump"]
+  br-live{{"⏳ wait: br-live"}}
+  br-publish(["🧑 human: br-publish"])
+  et-bump["🤖 agent: et-bump"]
+  et-live{{"⏳ wait: et-live"}}
+  et-publish(["🧑 human: et-publish"])
+  ew-live{{"⏳ wait: ew-live"}}
+  ew-prep["🤖 agent: ew-prep"]
+  ew-publish(["🧑 human: ew-publish"])
+  urban-live{{"⏳ wait: urban-live"}}
+  urban-release["🤖 agent: urban-release"]
+  ut-bump["🤖 agent: ut-bump"]
+  ut-live{{"⏳ wait: ut-live"}}
+  wf-bump["🤖 agent: wf-bump"]
+  wf-live{{"⏳ wait: wf-live"}}
+  ew-prep --> ew-publish
+  ew-publish -- "version" --> ew-live
+  ew-live -- "artifact" --> et-bump
+  et-bump --> et-publish
+  et-publish -- "version" --> et-live
+  ew-live -- "artifact" --> bk-bump
+  bk-bump --> bk-publish
+  bk-publish -- "version" --> bk-live
+  bk-live -- "artifact" --> br-bump
+  br-bump --> br-publish
+  br-publish -- "version" --> br-live
+  urban-release --> urban-live
+  urban-live -- "artifact" --> wf-bump
+  wf-bump --> wf-live
+  ew-live -- "artifact" --> ut-bump
+  et-live -- "artifact" --> ut-bump
+  urban-live -- "artifact" --> ut-bump
+  ut-bump --> ut-live
+  br-live -- "artifact" --> adopt-console
+  ew-live -- "artifact" --> adopt-console
+  ut-live -- "artifact" --> adopt-nano-workforce
+  wf-live -- "artifact" --> adopt-nano-workforce
+  urban-live -- "artifact" --> adopt-nano-workforce
+  urban-live -- "artifact" --> adopt-urban-pr-review
