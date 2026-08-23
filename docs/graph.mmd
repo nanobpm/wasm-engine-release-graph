@@ -3,16 +3,20 @@ flowchart TD
   adopt-console["🤖 agent: adopt-console"]
   adopt-nano-workforce["🤖 agent: adopt-nano-workforce"]
   adopt-urban-pr-review["🤖 agent: adopt-urban-pr-review"]
+  bk-adopted{{"⏳ wait: bk-adopted"}}
   bk-live{{"⏳ wait: bk-live"}}
   bk-release["🤖 agent: bk-release"]
+  br-adopted{{"⏳ wait: br-adopted"}}
   br-live{{"⏳ wait: br-live"}}
   br-release["🤖 agent: br-release"]
   et-live{{"⏳ wait: et-live"}}
   et-release["🤖 agent: et-release"]
   ew-live{{"⏳ wait: ew-live"}}
   ew-release["🤖 agent: ew-release"]
+  nwf-adopted{{"⏳ wait: nwf-adopted"}}
   urban-live{{"⏳ wait: urban-live"}}
   urban-release["🤖 agent: urban-release"]
+  ut-adopted{{"⏳ wait: ut-adopted"}}
   ut-bump["🤖 agent: ut-bump"]
   ut-live{{"⏳ wait: ut-live"}}
   wf-bump["🤖 agent: wf-bump"]
@@ -36,4 +40,8 @@ flowchart TD
   ut-live -- "artifact" --> adopt-nano-workforce
   wf-live -- "artifact" --> adopt-nano-workforce
   urban-live -- "artifact" --> adopt-nano-workforce
+  bk-live --> bk-adopted
+  br-live --> br-adopted
+  ut-live --> ut-adopted
+  adopt-nano-workforce --> nwf-adopted
   urban-live -- "artifact" --> adopt-urban-pr-review
