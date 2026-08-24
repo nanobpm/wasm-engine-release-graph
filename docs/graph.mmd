@@ -9,10 +9,14 @@ flowchart TD
   br-adopted{{"⏳ wait: br-adopted"}}
   br-live{{"⏳ wait: br-live"}}
   br-release["🤖 agent: br-release"]
+  console-adopt-review(["🧑 human: console-adopt-review"])
+  console-adopted(["🧑 human: console-adopted"])
+  escalate-console-surface(["🧑 human: escalate-console-surface"])
   et-live{{"⏳ wait: et-live"}}
   et-release["🤖 agent: et-release"]
   ew-live{{"⏳ wait: ew-live"}}
   ew-release["🤖 agent: ew-release"]
+  migrate-nano-workforce["🤖 agent: migrate-nano-workforce"]
   nwf-adopted{{"⏳ wait: nwf-adopted"}}
   urban-live{{"⏳ wait: urban-live"}}
   urban-release["🤖 agent: urban-release"]
@@ -37,11 +41,17 @@ flowchart TD
   ut-bump --> ut-live
   br-live -- "artifact" --> adopt-console
   ew-live -- "artifact" --> adopt-console
+  adopt-console -- "surface == 'missing'" --> escalate-console-surface
+  adopt-console -- "default" --> console-adopt-review
+  escalate-console-surface --> console-adopted
+  console-adopt-review --> console-adopted
   ut-live -- "artifact" --> adopt-nano-workforce
   wf-live -- "artifact" --> adopt-nano-workforce
   urban-live -- "artifact" --> adopt-nano-workforce
   bk-live --> bk-adopted
   br-live --> br-adopted
   ut-live --> ut-adopted
-  adopt-nano-workforce --> nwf-adopted
+  adopt-nano-workforce -- "result == 'breaking'" --> migrate-nano-workforce
+  adopt-nano-workforce -- "default" --> nwf-adopted
+  migrate-nano-workforce --> nwf-adopted
   urban-live -- "artifact" --> adopt-urban-pr-review

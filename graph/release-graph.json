@@ -50,9 +50,16 @@
       "wait": { "kind": "command", "target": "for u in @nanobpm/engine-wasm @nanobpm/engine-testkit @nanobpm/urban; do r=; for s in dependencies devDependencies peerDependencies; do r=$(npm view @nanobpm/urban-testkit@latest $s.$u 2>/dev/null); [ -n \"$r\" ] && break; done; [ -z \"$r\" ] && { echo no declared range for $u in @nanobpm/urban-testkit; exit 1; }; m=$(npm view \"$u@$r\" version 2>/dev/null | tail -1 | tr -d \"'\" | awk '{print $NF}'); l=$(npm view $u version 2>/dev/null); [ \"$m\" = \"$l\" ] || { echo $u: range $r resolves $m not latest $l; exit 1; }; done; echo OK: @nanobpm/urban-testkit resolves forward", "match": { "exitCode": 0 }, "onTimeout": "escalate" } },
 
     { "id": "adopt-console", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "Sink: in Magikcraft/nano-bpm (console/ subdir) bump @nanobpm/bojtos-kit + bojtos-react + engine-wasm ranges, build+test, open the adopt PR." } },
+      "agent": { "jobType": "senior:feature", "prompt": "Sink: in Magikcraft/nano-bpm (console/ subdir) bump @nanobpm/bojtos-kit + bojtos-react + engine-wasm ranges, build+test, open the adopt PR. Mode D: complete the job returning surface=\"missing\" if the console needs an API the just-published upstream does NOT yet expose (a surface extension you must NOT force locally); else surface=\"ok\"." },
+      "emits": [{ "name": "surface", "type": "string" }] },
+    { "id": "console-adopt-review", "kind": "human" },
+    { "id": "escalate-console-surface", "kind": "human" },
+    { "id": "console-adopted", "kind": "human" },
     { "id": "adopt-nano-workforce", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "Sink: in nano-workforce bump @nanobpm/urban + urban-testkit + workflow ranges, build+test, release @nanobpm/nano-workforce (semantic-release, CI-token)." } },
+      "agent": { "jobType": "senior:feature", "prompt": "Sink: in nano-workforce bump @nanobpm/urban + urban-testkit + workflow ranges, build+test, release @nanobpm/nano-workforce (semantic-release, CI-token). Mode A: complete the job returning result=\"breaking\" if adopting required a non-mechanical code migration (ADR-0065-shaped, not just a range bump); else result=\"green\"." },
+      "emits": [{ "name": "result", "type": "string" }] },
+    { "id": "migrate-nano-workforce", "kind": "agent",
+      "agent": { "jobType": "senior:feature", "prompt": "Mode-A migration (breaking upstream): in nano-workforce perform the ADR-0065-shaped code migration for the new @nanobpm/urban major surface (mirror nano-workforce#489 — read the migration notes, adapt call sites, don't just bump the range), build+test, then release @nanobpm/nano-workforce (semantic-release, CI-token)." } },
     { "id": "nwf-adopted", "kind": "wait",
       "wait": { "kind": "command", "target": "for u in @nanobpm/urban @nanobpm/urban-testkit @nanobpm/workflow; do r=; for s in dependencies devDependencies peerDependencies; do r=$(npm view @nanobpm/nano-workforce@latest $s.$u 2>/dev/null); [ -n \"$r\" ] && break; done; [ -z \"$r\" ] && { echo no declared range for $u in @nanobpm/nano-workforce; exit 1; }; m=$(npm view \"$u@$r\" version 2>/dev/null | tail -1 | tr -d \"'\" | awk '{print $NF}'); l=$(npm view $u version 2>/dev/null); [ \"$m\" = \"$l\" ] || { echo $u: range $r resolves $m not latest $l; exit 1; }; done; echo OK: @nanobpm/nano-workforce resolves forward", "match": { "exitCode": 0 }, "onTimeout": "escalate" } },
     { "id": "adopt-urban-pr-review", "kind": "agent",
@@ -82,6 +89,11 @@
     { "from": "br-live.artifact", "to": "adopt-console" },
     { "from": "ew-live.artifact", "to": "adopt-console" },
 
+    { "from": "adopt-console", "to": "escalate-console-surface", "when": "adopt-console.surface", "equals": "missing" },
+    { "from": "adopt-console", "to": "console-adopt-review", "default": true },
+    { "from": "escalate-console-surface", "to": "console-adopted" },
+    { "from": "console-adopt-review", "to": "console-adopted" },
+
     { "from": "ut-live.artifact", "to": "adopt-nano-workforce" },
     { "from": "wf-live.artifact", "to": "adopt-nano-workforce" },
     { "from": "urban-live.artifact", "to": "adopt-nano-workforce" },
@@ -89,7 +101,10 @@
     { "from": "bk-live", "to": "bk-adopted" },
     { "from": "br-live", "to": "br-adopted" },
     { "from": "ut-live", "to": "ut-adopted" },
-    { "from": "adopt-nano-workforce", "to": "nwf-adopted" },
+
+    { "from": "adopt-nano-workforce", "to": "migrate-nano-workforce", "when": "adopt-nano-workforce.result", "equals": "breaking" },
+    { "from": "adopt-nano-workforce", "to": "nwf-adopted", "default": true },
+    { "from": "migrate-nano-workforce", "to": "nwf-adopted" },
 
     { "from": "urban-live.artifact", "to": "adopt-urban-pr-review" }
   ]

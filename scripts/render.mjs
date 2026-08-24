@@ -27,7 +27,16 @@ for (const n of [...graph.nodes].sort((a, b) => a.id.localeCompare(b.id))) {
 }
 for (const e of graph.edges ?? []) {
   const [fromNode, fact] = e.from.split(".");
-  lines.push(fact ? `  ${fromNode} -- "${fact}" --> ${e.to}` : `  ${fromNode} --> ${e.to}`);
+  // A guarded edge (S7) labels its FEEL predicate (`<fact> == <literal>`); a split's else-branch
+  // labels `default`; an unconditional edge labels its consumed fact (if any).
+  const guard =
+    e.when !== undefined
+      ? `${e.when.split(".")[1] ?? e.when} == ${typeof e.equals === "string" ? `'${e.equals}'` : e.equals}`
+      : e.default === true
+        ? "default"
+        : undefined;
+  const label = guard ?? fact;
+  lines.push(label ? `  ${fromNode} -- "${label}" --> ${e.to}` : `  ${fromNode} --> ${e.to}`);
 }
 const mmd = lines.join("\n") + "\n";
 
