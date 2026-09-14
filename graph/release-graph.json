@@ -230,15 +230,24 @@
     },
     {
       "id": "console-adopt-review",
-      "kind": "human"
+      "kind": "human",
+      "human": {
+        "prompt": "Review the console dependency-adopt PR opened by adopt-console (bumps the @nanobpm/bojtos-kit + bojtos-react + engine-wasm ranges in console/). adopt-console reported surface=\"ok\" (no missing upstream API). Confirm CI is green and the ranges resolve forward to the just-published versions, then merge the PR. Complete this task once it is merged to advance to console-adopted."
+      }
     },
     {
       "id": "escalate-console-surface",
-      "kind": "human"
+      "kind": "human",
+      "human": {
+        "prompt": "adopt-console reported surface=\"missing\": the console needs an API the just-published upstream (engine-wasm / bojtos-kit / bojtos-react) does NOT yet expose — a Mode-D surface extension that must NOT be forced locally. Decide: (a) extend the upstream surface and re-publish before adopting, or (b) defer the console adoption to a later release. Record the decision, then complete this task."
+      }
     },
     {
       "id": "console-adopted",
-      "kind": "human"
+      "kind": "human",
+      "human": {
+        "prompt": "Final gate: confirm the console dependency-adopt PR is merged and its CI is green (console now builds against the newly published @nanobpm/bojtos-kit + bojtos-react + engine-wasm). Complete this task to close out the console adoption branch."
+      }
     },
     {
       "id": "adopt-nano-workforce",
