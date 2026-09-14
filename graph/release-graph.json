@@ -1,111 +1,420 @@
 {
   "name": "nano ecosystem release delivery graph",
   "nodes": [
-    { "id": "ew-release", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "In Magikcraft/nano-bpm: tag engine-core, run `make console-wasm`, cut @nanobpm/engine-wasm via bojtos-release.mjs (release-bojtos-npm.yml, OIDC trusted publishing — no OTP)." } },
-    { "id": "ew-live", "kind": "wait",
-      "wait": { "kind": "npm", "target": "@nanobpm/engine-wasm", "onTimeout": "escalate" },
-      "emits": [{ "name": "artifact", "type": "artifact" }] },
-
-    { "id": "et-release", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "In clients/engine-testkit: bump @nanobpm/engine-wasm range to the new version (assert it resolves past the 0.x caret trap), build+test, cut @nanobpm/engine-testkit (release-engine-testkit-npm.yml, OIDC)." } },
-    { "id": "et-live", "kind": "wait",
-      "wait": { "kind": "npm", "target": "@nanobpm/engine-testkit", "onTimeout": "escalate" },
-      "emits": [{ "name": "artifact", "type": "artifact" }] },
-
-    { "id": "bk-release", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "In bojtos/bojtos-kit: bump @nanobpm/engine-wasm range (caret-trap check: must resolve to the new engine-wasm, not <0.4), build+test, cut @nanobpm/bojtos-kit (OIDC)." } },
-    { "id": "bk-live", "kind": "wait",
-      "wait": { "kind": "npm", "target": "@nanobpm/bojtos-kit", "onTimeout": "escalate" },
-      "emits": [{ "name": "artifact", "type": "artifact" }] },
-    { "id": "bk-adopted", "kind": "wait",
-      "wait": { "kind": "command", "target": "for u in @nanobpm/engine-wasm; do r=; for s in dependencies devDependencies peerDependencies; do r=$(npm view @nanobpm/bojtos-kit@latest $s.$u 2>/dev/null); [ -n \"$r\" ] && break; done; [ -z \"$r\" ] && { echo no declared range for $u in @nanobpm/bojtos-kit; exit 1; }; m=$(npm view \"$u@$r\" version 2>/dev/null | tail -1 | tr -d \"'\" | awk '{print $NF}'); l=$(npm view $u version 2>/dev/null); [ \"$m\" = \"$l\" ] || { echo $u: range $r resolves $m not latest $l; exit 1; }; done; echo OK: @nanobpm/bojtos-kit resolves forward", "match": { "exitCode": 0 }, "onTimeout": "escalate" } },
-
-    { "id": "br-release", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "In bojtos/bojtos-react: bump @nanobpm/bojtos-kit range, build+test, cut @nanobpm/bojtos-react (OIDC)." } },
-    { "id": "br-live", "kind": "wait",
-      "wait": { "kind": "npm", "target": "@nanobpm/bojtos-react", "onTimeout": "escalate" },
-      "emits": [{ "name": "artifact", "type": "artifact" }] },
-    { "id": "br-adopted", "kind": "wait",
-      "wait": { "kind": "command", "target": "for u in @nanobpm/bojtos-kit; do r=; for s in dependencies devDependencies peerDependencies; do r=$(npm view @nanobpm/bojtos-react@latest $s.$u 2>/dev/null); [ -n \"$r\" ] && break; done; [ -z \"$r\" ] && { echo no declared range for $u in @nanobpm/bojtos-react; exit 1; }; m=$(npm view \"$u@$r\" version 2>/dev/null | tail -1 | tr -d \"'\" | awk '{print $NF}'); l=$(npm view $u version 2>/dev/null); [ \"$m\" = \"$l\" ] || { echo $u: range $r resolves $m not latest $l; exit 1; }; done; echo OK: @nanobpm/bojtos-react resolves forward", "match": { "exitCode": 0 }, "onTimeout": "escalate" } },
-
-    { "id": "urban-release", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "In nanobpm/nano-ide: cut @nanobpm/urban via release-please (merge its release PR — CI-token publish)." } },
-    { "id": "urban-live", "kind": "wait",
-      "wait": { "kind": "npm", "target": "@nanobpm/urban", "onTimeout": "escalate" },
-      "emits": [{ "name": "artifact", "type": "artifact" }] },
-
-    { "id": "wf-bump", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "In nano-ide/packages/workflow: bump @nanobpm/urban range, then merge the release-please PR for @nanobpm/workflow (CI-token publish)." } },
-    { "id": "wf-live", "kind": "wait",
-      "wait": { "kind": "npm", "target": "@nanobpm/workflow", "onTimeout": "escalate" },
-      "emits": [{ "name": "artifact", "type": "artifact" }] },
-
-    { "id": "ut-bump", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "JOIN: in nano-ide/packages/urban-testkit bump @nanobpm/engine-wasm + engine-testkit + urban ranges (fix the duplicate urban range entry), build+test, then merge the release-please PR for @nanobpm/urban-testkit (CI-token publish)." } },
-    { "id": "ut-live", "kind": "wait",
-      "wait": { "kind": "npm", "target": "@nanobpm/urban-testkit", "onTimeout": "escalate" },
-      "emits": [{ "name": "artifact", "type": "artifact" }] },
-    { "id": "ut-adopted", "kind": "wait",
-      "wait": { "kind": "command", "target": "for u in @nanobpm/engine-wasm @nanobpm/engine-testkit @nanobpm/urban; do r=; for s in dependencies devDependencies peerDependencies; do r=$(npm view @nanobpm/urban-testkit@latest $s.$u 2>/dev/null); [ -n \"$r\" ] && break; done; [ -z \"$r\" ] && { echo no declared range for $u in @nanobpm/urban-testkit; exit 1; }; m=$(npm view \"$u@$r\" version 2>/dev/null | tail -1 | tr -d \"'\" | awk '{print $NF}'); l=$(npm view $u version 2>/dev/null); [ \"$m\" = \"$l\" ] || { echo $u: range $r resolves $m not latest $l; exit 1; }; done; echo OK: @nanobpm/urban-testkit resolves forward", "match": { "exitCode": 0 }, "onTimeout": "escalate" } },
-
-    { "id": "adopt-console", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "Sink: in Magikcraft/nano-bpm (console/ subdir) bump @nanobpm/bojtos-kit + bojtos-react + engine-wasm ranges, build+test, open the adopt PR. Mode D: complete the job returning surface=\"missing\" if the console needs an API the just-published upstream does NOT yet expose (a surface extension you must NOT force locally); else surface=\"ok\"." },
-      "emits": [{ "name": "surface", "type": "string" }] },
-    { "id": "console-adopt-review", "kind": "human" },
-    { "id": "escalate-console-surface", "kind": "human" },
-    { "id": "console-adopted", "kind": "human" },
-    { "id": "adopt-nano-workforce", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "Sink: in nano-workforce bump @nanobpm/urban + urban-testkit + workflow ranges, build+test, release @nanobpm/nano-workforce (semantic-release, CI-token). Mode A: complete the job returning result=\"breaking\" if adopting required a non-mechanical code migration (ADR-0065-shaped, not just a range bump); else result=\"green\"." },
-      "emits": [{ "name": "result", "type": "string" }] },
-    { "id": "migrate-nano-workforce", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "Mode-A migration (breaking upstream): in nano-workforce perform the ADR-0065-shaped code migration for the new @nanobpm/urban major surface (mirror nano-workforce#489 — read the migration notes, adapt call sites, don't just bump the range), build+test, then release @nanobpm/nano-workforce (semantic-release, CI-token)." } },
-    { "id": "nwf-adopted", "kind": "wait",
-      "wait": { "kind": "command", "target": "for u in @nanobpm/urban @nanobpm/urban-testkit @nanobpm/workflow; do r=; for s in dependencies devDependencies peerDependencies; do r=$(npm view @nanobpm/nano-workforce@latest $s.$u 2>/dev/null); [ -n \"$r\" ] && break; done; [ -z \"$r\" ] && { echo no declared range for $u in @nanobpm/nano-workforce; exit 1; }; m=$(npm view \"$u@$r\" version 2>/dev/null | tail -1 | tr -d \"'\" | awk '{print $NF}'); l=$(npm view $u version 2>/dev/null); [ \"$m\" = \"$l\" ] || { echo $u: range $r resolves $m not latest $l; exit 1; }; done; echo OK: @nanobpm/nano-workforce resolves forward", "match": { "exitCode": 0 }, "onTimeout": "escalate" } },
-    { "id": "adopt-urban-pr-review", "kind": "agent",
-      "agent": { "jobType": "senior:feature", "prompt": "Sink: in urban-pr-review-codefirst bump the @nanobpm/urban import in deno.json, run deno task check + gen:check, open the adopt PR." } }
+    {
+      "id": "ew-release",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "In Magikcraft/nano-bpm: tag engine-core, run `make console-wasm`, cut @nanobpm/engine-wasm via bojtos-release.mjs (release-bojtos-npm.yml, OIDC trusted publishing — no OTP).",
+        "repository": "Magikcraft/nano-bpm",
+        "baseBranch": "main"
+      }
+    },
+    {
+      "id": "ew-live",
+      "kind": "wait",
+      "wait": {
+        "kind": "npm",
+        "target": "@nanobpm/engine-wasm",
+        "onTimeout": "escalate"
+      },
+      "emits": [
+        {
+          "name": "artifact",
+          "type": "artifact"
+        }
+      ]
+    },
+    {
+      "id": "et-release",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "In clients/engine-testkit: bump @nanobpm/engine-wasm range to the new version (assert it resolves past the 0.x caret trap), build+test, cut @nanobpm/engine-testkit (release-engine-testkit-npm.yml, OIDC).",
+        "repository": "Magikcraft/nano-bpm",
+        "baseBranch": "main"
+      }
+    },
+    {
+      "id": "et-live",
+      "kind": "wait",
+      "wait": {
+        "kind": "npm",
+        "target": "@nanobpm/engine-testkit",
+        "onTimeout": "escalate"
+      },
+      "emits": [
+        {
+          "name": "artifact",
+          "type": "artifact"
+        }
+      ]
+    },
+    {
+      "id": "bk-release",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "In bojtos/bojtos-kit: bump @nanobpm/engine-wasm range (caret-trap check: must resolve to the new engine-wasm, not <0.4), build+test, cut @nanobpm/bojtos-kit (OIDC).",
+        "repository": "nanobpm/bojtos",
+        "baseBranch": "main"
+      }
+    },
+    {
+      "id": "bk-live",
+      "kind": "wait",
+      "wait": {
+        "kind": "npm",
+        "target": "@nanobpm/bojtos-kit",
+        "onTimeout": "escalate"
+      },
+      "emits": [
+        {
+          "name": "artifact",
+          "type": "artifact"
+        }
+      ]
+    },
+    {
+      "id": "bk-adopted",
+      "kind": "wait",
+      "wait": {
+        "kind": "command",
+        "target": "for u in @nanobpm/engine-wasm; do r=; for s in dependencies devDependencies peerDependencies; do r=$(npm view @nanobpm/bojtos-kit@latest $s.$u 2>/dev/null); [ -n \"$r\" ] && break; done; [ -z \"$r\" ] && { echo no declared range for $u in @nanobpm/bojtos-kit; exit 1; }; m=$(npm view \"$u@$r\" version 2>/dev/null | tail -1 | tr -d \"'\" | awk '{print $NF}'); l=$(npm view $u version 2>/dev/null); [ \"$m\" = \"$l\" ] || { echo $u: range $r resolves $m not latest $l; exit 1; }; done; echo OK: @nanobpm/bojtos-kit resolves forward",
+        "match": {
+          "exitCode": 0
+        },
+        "onTimeout": "escalate"
+      }
+    },
+    {
+      "id": "br-release",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "In bojtos/bojtos-react: bump @nanobpm/bojtos-kit range, build+test, cut @nanobpm/bojtos-react (OIDC).",
+        "repository": "nanobpm/bojtos",
+        "baseBranch": "main"
+      }
+    },
+    {
+      "id": "br-live",
+      "kind": "wait",
+      "wait": {
+        "kind": "npm",
+        "target": "@nanobpm/bojtos-react",
+        "onTimeout": "escalate"
+      },
+      "emits": [
+        {
+          "name": "artifact",
+          "type": "artifact"
+        }
+      ]
+    },
+    {
+      "id": "br-adopted",
+      "kind": "wait",
+      "wait": {
+        "kind": "command",
+        "target": "for u in @nanobpm/bojtos-kit; do r=; for s in dependencies devDependencies peerDependencies; do r=$(npm view @nanobpm/bojtos-react@latest $s.$u 2>/dev/null); [ -n \"$r\" ] && break; done; [ -z \"$r\" ] && { echo no declared range for $u in @nanobpm/bojtos-react; exit 1; }; m=$(npm view \"$u@$r\" version 2>/dev/null | tail -1 | tr -d \"'\" | awk '{print $NF}'); l=$(npm view $u version 2>/dev/null); [ \"$m\" = \"$l\" ] || { echo $u: range $r resolves $m not latest $l; exit 1; }; done; echo OK: @nanobpm/bojtos-react resolves forward",
+        "match": {
+          "exitCode": 0
+        },
+        "onTimeout": "escalate"
+      }
+    },
+    {
+      "id": "urban-release",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "In nanobpm/nano-ide: cut @nanobpm/urban via release-please (merge its release PR — CI-token publish).",
+        "repository": "nanobpm/nano-ide",
+        "baseBranch": "main"
+      }
+    },
+    {
+      "id": "urban-live",
+      "kind": "wait",
+      "wait": {
+        "kind": "npm",
+        "target": "@nanobpm/urban",
+        "onTimeout": "escalate"
+      },
+      "emits": [
+        {
+          "name": "artifact",
+          "type": "artifact"
+        }
+      ]
+    },
+    {
+      "id": "wf-bump",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "In nano-ide/packages/workflow: bump @nanobpm/urban range, then merge the release-please PR for @nanobpm/workflow (CI-token publish).",
+        "repository": "nanobpm/nano-ide",
+        "baseBranch": "main"
+      }
+    },
+    {
+      "id": "wf-live",
+      "kind": "wait",
+      "wait": {
+        "kind": "npm",
+        "target": "@nanobpm/workflow",
+        "onTimeout": "escalate"
+      },
+      "emits": [
+        {
+          "name": "artifact",
+          "type": "artifact"
+        }
+      ]
+    },
+    {
+      "id": "ut-bump",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "JOIN: in nano-ide/packages/urban-testkit bump @nanobpm/engine-wasm + engine-testkit + urban ranges (fix the duplicate urban range entry), build+test, then merge the release-please PR for @nanobpm/urban-testkit (CI-token publish).",
+        "repository": "nanobpm/nano-ide",
+        "baseBranch": "main"
+      }
+    },
+    {
+      "id": "ut-live",
+      "kind": "wait",
+      "wait": {
+        "kind": "npm",
+        "target": "@nanobpm/urban-testkit",
+        "onTimeout": "escalate"
+      },
+      "emits": [
+        {
+          "name": "artifact",
+          "type": "artifact"
+        }
+      ]
+    },
+    {
+      "id": "ut-adopted",
+      "kind": "wait",
+      "wait": {
+        "kind": "command",
+        "target": "for u in @nanobpm/engine-wasm @nanobpm/engine-testkit @nanobpm/urban; do r=; for s in dependencies devDependencies peerDependencies; do r=$(npm view @nanobpm/urban-testkit@latest $s.$u 2>/dev/null); [ -n \"$r\" ] && break; done; [ -z \"$r\" ] && { echo no declared range for $u in @nanobpm/urban-testkit; exit 1; }; m=$(npm view \"$u@$r\" version 2>/dev/null | tail -1 | tr -d \"'\" | awk '{print $NF}'); l=$(npm view $u version 2>/dev/null); [ \"$m\" = \"$l\" ] || { echo $u: range $r resolves $m not latest $l; exit 1; }; done; echo OK: @nanobpm/urban-testkit resolves forward",
+        "match": {
+          "exitCode": 0
+        },
+        "onTimeout": "escalate"
+      }
+    },
+    {
+      "id": "adopt-console",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "Sink: in Magikcraft/nano-bpm (console/ subdir) bump @nanobpm/bojtos-kit + bojtos-react + engine-wasm ranges, build+test, open the adopt PR. Mode D: complete the job returning surface=\"missing\" if the console needs an API the just-published upstream does NOT yet expose (a surface extension you must NOT force locally); else surface=\"ok\".",
+        "repository": "Magikcraft/nano-bpm",
+        "baseBranch": "main"
+      },
+      "emits": [
+        {
+          "name": "surface",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "console-adopt-review",
+      "kind": "human"
+    },
+    {
+      "id": "escalate-console-surface",
+      "kind": "human"
+    },
+    {
+      "id": "console-adopted",
+      "kind": "human"
+    },
+    {
+      "id": "adopt-nano-workforce",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "Sink: in nano-workforce bump @nanobpm/urban + urban-testkit + workflow ranges, build+test, release @nanobpm/nano-workforce (semantic-release, CI-token). Mode A: complete the job returning result=\"breaking\" if adopting required a non-mechanical code migration (ADR-0065-shaped, not just a range bump); else result=\"green\".",
+        "repository": "nanobpm/nano-workforce",
+        "baseBranch": "main"
+      },
+      "emits": [
+        {
+          "name": "result",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "migrate-nano-workforce",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "Mode-A migration (breaking upstream): in nano-workforce perform the ADR-0065-shaped code migration for the new @nanobpm/urban major surface (mirror nano-workforce#489 — read the migration notes, adapt call sites, don't just bump the range), build+test, then release @nanobpm/nano-workforce (semantic-release, CI-token).",
+        "repository": "nanobpm/nano-workforce",
+        "baseBranch": "main"
+      }
+    },
+    {
+      "id": "nwf-adopted",
+      "kind": "wait",
+      "wait": {
+        "kind": "command",
+        "target": "for u in @nanobpm/urban @nanobpm/urban-testkit @nanobpm/workflow; do r=; for s in dependencies devDependencies peerDependencies; do r=$(npm view @nanobpm/nano-workforce@latest $s.$u 2>/dev/null); [ -n \"$r\" ] && break; done; [ -z \"$r\" ] && { echo no declared range for $u in @nanobpm/nano-workforce; exit 1; }; m=$(npm view \"$u@$r\" version 2>/dev/null | tail -1 | tr -d \"'\" | awk '{print $NF}'); l=$(npm view $u version 2>/dev/null); [ \"$m\" = \"$l\" ] || { echo $u: range $r resolves $m not latest $l; exit 1; }; done; echo OK: @nanobpm/nano-workforce resolves forward",
+        "match": {
+          "exitCode": 0
+        },
+        "onTimeout": "escalate"
+      }
+    },
+    {
+      "id": "adopt-urban-pr-review",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "Sink: in urban-pr-review-codefirst bump the @nanobpm/urban import in deno.json, run deno task check + gen:check, open the adopt PR.",
+        "repository": "jwulf/urban-pr-review-codefirst",
+        "baseBranch": "main"
+      }
+    }
   ],
   "edges": [
-    { "from": "ew-release", "to": "ew-live" },
-
-    { "from": "ew-live.artifact", "to": "et-release" },
-    { "from": "et-release", "to": "et-live" },
-
-    { "from": "ew-live.artifact", "to": "bk-release" },
-    { "from": "bk-release", "to": "bk-live" },
-
-    { "from": "bk-live.artifact", "to": "br-release" },
-    { "from": "br-release", "to": "br-live" },
-
-    { "from": "urban-release", "to": "urban-live" },
-    { "from": "urban-live.artifact", "to": "wf-bump" },
-    { "from": "wf-bump", "to": "wf-live" },
-
-    { "from": "ew-live.artifact", "to": "ut-bump" },
-    { "from": "et-live.artifact", "to": "ut-bump" },
-    { "from": "urban-live.artifact", "to": "ut-bump" },
-    { "from": "ut-bump", "to": "ut-live" },
-
-    { "from": "br-live.artifact", "to": "adopt-console" },
-    { "from": "ew-live.artifact", "to": "adopt-console" },
-
-    { "from": "adopt-console", "to": "escalate-console-surface", "when": "adopt-console.surface", "equals": "missing" },
-    { "from": "adopt-console", "to": "console-adopt-review", "default": true },
-    { "from": "escalate-console-surface", "to": "console-adopted" },
-    { "from": "console-adopt-review", "to": "console-adopted" },
-
-    { "from": "ut-live.artifact", "to": "adopt-nano-workforce" },
-    { "from": "wf-live.artifact", "to": "adopt-nano-workforce" },
-    { "from": "urban-live.artifact", "to": "adopt-nano-workforce" },
-
-    { "from": "bk-live", "to": "bk-adopted" },
-    { "from": "br-live", "to": "br-adopted" },
-    { "from": "ut-live", "to": "ut-adopted" },
-
-    { "from": "adopt-nano-workforce", "to": "migrate-nano-workforce", "when": "adopt-nano-workforce.result", "equals": "breaking" },
-    { "from": "adopt-nano-workforce", "to": "nwf-adopted", "default": true },
-    { "from": "migrate-nano-workforce", "to": "nwf-adopted" },
-
-    { "from": "urban-live.artifact", "to": "adopt-urban-pr-review" }
+    {
+      "from": "ew-release",
+      "to": "ew-live"
+    },
+    {
+      "from": "ew-live.artifact",
+      "to": "et-release"
+    },
+    {
+      "from": "et-release",
+      "to": "et-live"
+    },
+    {
+      "from": "ew-live.artifact",
+      "to": "bk-release"
+    },
+    {
+      "from": "bk-release",
+      "to": "bk-live"
+    },
+    {
+      "from": "bk-live.artifact",
+      "to": "br-release"
+    },
+    {
+      "from": "br-release",
+      "to": "br-live"
+    },
+    {
+      "from": "urban-release",
+      "to": "urban-live"
+    },
+    {
+      "from": "urban-live.artifact",
+      "to": "wf-bump"
+    },
+    {
+      "from": "wf-bump",
+      "to": "wf-live"
+    },
+    {
+      "from": "ew-live.artifact",
+      "to": "ut-bump"
+    },
+    {
+      "from": "et-live.artifact",
+      "to": "ut-bump"
+    },
+    {
+      "from": "urban-live.artifact",
+      "to": "ut-bump"
+    },
+    {
+      "from": "ut-bump",
+      "to": "ut-live"
+    },
+    {
+      "from": "br-live.artifact",
+      "to": "adopt-console"
+    },
+    {
+      "from": "ew-live.artifact",
+      "to": "adopt-console"
+    },
+    {
+      "from": "adopt-console",
+      "to": "escalate-console-surface",
+      "when": "adopt-console.surface",
+      "equals": "missing"
+    },
+    {
+      "from": "adopt-console",
+      "to": "console-adopt-review",
+      "default": true
+    },
+    {
+      "from": "escalate-console-surface",
+      "to": "console-adopted"
+    },
+    {
+      "from": "console-adopt-review",
+      "to": "console-adopted"
+    },
+    {
+      "from": "ut-live.artifact",
+      "to": "adopt-nano-workforce"
+    },
+    {
+      "from": "wf-live.artifact",
+      "to": "adopt-nano-workforce"
+    },
+    {
+      "from": "urban-live.artifact",
+      "to": "adopt-nano-workforce"
+    },
+    {
+      "from": "bk-live",
+      "to": "bk-adopted"
+    },
+    {
+      "from": "br-live",
+      "to": "br-adopted"
+    },
+    {
+      "from": "ut-live",
+      "to": "ut-adopted"
+    },
+    {
+      "from": "adopt-nano-workforce",
+      "to": "migrate-nano-workforce",
+      "when": "adopt-nano-workforce.result",
+      "equals": "breaking"
+    },
+    {
+      "from": "adopt-nano-workforce",
+      "to": "nwf-adopted",
+      "default": true
+    },
+    {
+      "from": "migrate-nano-workforce",
+      "to": "nwf-adopted"
+    },
+    {
+      "from": "urban-live.artifact",
+      "to": "adopt-urban-pr-review"
+    }
   ]
 }
