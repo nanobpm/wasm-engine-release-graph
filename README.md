@@ -18,7 +18,7 @@ The nano ecosystem roots in one Rust crate and fans out through **three differen
 
 | Train | Repo | Mechanism | Publishes |
 |---|---|---|---|
-| engine / bojtos | `Magikcraft/nano-bpm` + `nanobpm/bojtos` | tag + `bojtos-release.mjs` (**OIDC** trusted publishing) | `engine-wasm`, `engine-testkit`, `bojtos-kit`, `bojtos-react` |
+| engine / bojtos | `nanobpm/nano-bpm` + `nanobpm/bojtos` | tag + `bojtos-release.mjs` (**OIDC** trusted publishing) | `engine-wasm`, `engine-testkit`, `bojtos-kit`, `bojtos-react` |
 | urban | `nanobpm/nano-ide` | release-please (CI token) | `urban`, `workflow`, `urban-testkit` |
 | apps | `nano-workforce`, `console`, `urban-pr-review` | semantic-release / adopt PRs | the sinks |
 
@@ -60,7 +60,7 @@ no REST bridge, no stale drawing.
 
 ```mermaid
 flowchart TD
-  subgraph engine_bojtos["Magikcraft/nano-bpm + bojtos — OIDC publishes"]
+  subgraph engine_bojtos["nanobpm/nano-bpm + bojtos — OIDC publishes"]
     ew-release["🤖 tag engine-core · make console-wasm · cut engine-wasm"] --> ew-live{{"⏳ engine-wasm live"}}
     et-release["🤖 bump engine-wasm range · cut engine-testkit"] --> et-live{{"⏳ engine-testkit live"}}
     bk-release["🤖 bump engine-wasm (caret-trap check) · cut bojtos-kit"] --> bk-live{{"⏳ bojtos-kit live"}}

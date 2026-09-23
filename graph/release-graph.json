@@ -6,8 +6,8 @@
       "kind": "agent",
       "agent": {
         "jobType": "senior:feature",
-        "prompt": "In Magikcraft/nano-bpm: tag engine-core, run `make console-wasm`, cut @nanobpm/engine-wasm via bojtos-release.mjs (release-bojtos-npm.yml, OIDC trusted publishing — no OTP).",
-        "repository": "Magikcraft/nano-bpm",
+        "prompt": "In nanobpm/nano-bpm: tag engine-core, run `make console-wasm`, cut @nanobpm/engine-wasm via bojtos-release.mjs (release-bojtos-npm.yml, OIDC trusted publishing — no OTP).",
+        "repository": "nanobpm/nano-bpm",
         "baseBranch": "main"
       }
     },
@@ -32,7 +32,7 @@
       "agent": {
         "jobType": "senior:feature",
         "prompt": "In clients/engine-testkit: bump @nanobpm/engine-wasm range to the new version (assert it resolves past the 0.x caret trap), build+test, cut @nanobpm/engine-testkit (release-engine-testkit-npm.yml, OIDC).",
-        "repository": "Magikcraft/nano-bpm",
+        "repository": "nanobpm/nano-bpm",
         "baseBranch": "main"
       }
     },
@@ -217,8 +217,8 @@
       "kind": "agent",
       "agent": {
         "jobType": "senior:feature",
-        "prompt": "Sink: in Magikcraft/nano-bpm (console/ subdir) bump @nanobpm/bojtos-kit + bojtos-react + engine-wasm ranges, build+test, open the adopt PR. Mode D: complete the job returning surface=\"missing\" if the console needs an API the just-published upstream does NOT yet expose (a surface extension you must NOT force locally); else surface=\"ok\".",
-        "repository": "Magikcraft/nano-bpm",
+        "prompt": "Sink: in nanobpm/nano-bpm (console/ subdir) bump @nanobpm/bojtos-kit + bojtos-react + engine-wasm ranges, build+test, open the adopt PR. Mode D: complete the job returning surface=\"missing\" if the console needs an API the just-published upstream does NOT yet expose (a surface extension you must NOT force locally); else surface=\"ok\".",
+        "repository": "nanobpm/nano-bpm",
         "baseBranch": "main"
       },
       "emits": [
