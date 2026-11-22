@@ -122,12 +122,17 @@ point at a running Merlin instance:
 
 ```bash
 MERLIN_URL=http://127.0.0.1:3000 npm run preview     # validate + compile + show diagram/stops/effects (no side effects)
-MERLIN_URL=http://127.0.0.1:3000 npm run dispatch    # preview, then launch with the approval token
+MERLIN_URL=http://127.0.0.1:3000 npm run dispatch    # preview, stage, then launch with the approval token
 ```
 
-`preview` posts to `actions/delivery-graph/preview`; `dispatch` posts to `actions/delivery-graph/dispatch`
-digest as approval. A re-dispatch with the same graph is idempotent (short-circuits onto the
-in-flight run).
+`preview` posts to `actions/delivery-graph/preview`, which persists nothing. `dispatch` previews, then
+stages the same graph through `actions/compile-delivery-graph` (refusing if the staged digest differs
+from the previewed one), then posts the digest to `actions/delivery-graph/dispatch` as the approval.
+A re-dispatch with the same graph is idempotent (short-circuits onto the in-flight run).
+
+Point `MERLIN_URL` at nwf itself (port 3000, e.g. through `ssh -L 3000:localhost:3000 merlin.local`),
+not at the gateway on 8080: laying out this graph takes minutes, and the gateway's proxy gives up
+after 30 s with a 502.
 
 ## Single source of truth / no drift
 

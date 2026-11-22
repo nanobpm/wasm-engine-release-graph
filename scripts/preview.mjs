@@ -34,7 +34,7 @@ const post = async (op, body) => {
   return { status: res.status, json };
 };
 
-// Preview (parse + validate + compile + STAGE a proposal, zero dispatch/side effects).
+// Preview (parse + validate + compile; persists NOTHING: nwf's preview door is pure).
 // The framework routes operations by their OpenAPI *path*, not their operationId.
 const preview = await post("actions/delivery-graph/preview", { graphJson });
 const p = preview.json;
@@ -60,9 +60,25 @@ if (!DISPATCH) {
   process.exit(0);
 }
 
-// Dispatch: the door is OPERATOR-ONLY and launches a STAGED proposal by its digest (the preview
-// above staged it). The operator presenting the digest IS the approval — there is no graphJson or
-// replayable token on this door (ADR 0005 Decision 7 / #460). Idempotent on the digest.
+// Stage: preview never persists, so stage the SAME graph via the compile door (it takes the graph
+// OBJECT, not the graphJson string). Staging is content-addressed and idempotent on the digest.
+const staged = await post("actions/compile-delivery-graph", JSON.parse(graphJson));
+const st = staged.json;
+if (st.status !== "ready" || !st.digest) {
+  console.error(`✗ staging failed (HTTP ${staged.status}):${st.error ? " " + st.error : ""}`);
+  for (const e of st.errors ?? []) console.error(`  ${e.path}: ${e.message}`);
+  process.exit(1);
+}
+// The approval is for the previewed digest: never dispatch anything else.
+if (st.digest !== p.digest) {
+  console.error(`✗ staged digest ${st.digest} != previewed digest ${p.digest}; refusing to dispatch`);
+  process.exit(1);
+}
+console.log(`\n✓ staged ${st.digest}${st.superseded?.length ? ` (superseded ${st.superseded.join(", ")})` : ""}`);
+
+// Dispatch: the door is OPERATOR-ONLY and launches a STAGED proposal by its digest. The operator
+// presenting the digest IS the approval — there is no graphJson or replayable token on this door
+// (ADR 0005 Decision 7 / #460). Idempotent on the digest.
 const run = await post("actions/delivery-graph/dispatch", { digest: p.digest });
 const r = run.json;
 if (!r.ok) {
