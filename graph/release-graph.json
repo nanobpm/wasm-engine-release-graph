@@ -6,7 +6,7 @@
       "kind": "agent",
       "agent": {
         "jobType": "senior:feature",
-        "prompt": "In nanobpm/nano-bpm: tag engine-core, run `make console-wasm`, cut @nanobpm/engine-wasm via bojtos-release.mjs (release-bojtos-npm.yml, OIDC trusted publishing — no OTP).",
+        "prompt": "In nanobpm/nano-bpm, cut a coordinated release following RELEASE.md (the canonical procedure; read it first). (1) Open ONE version-bump PR titled `chore(release): gateway v<next> + engine-wasm <next>` (add nano-bernd only if the FFI ABI changed): bump server/Cargo.toml and processos/Cargo.toml for the gateway train, and engine-wasm/pkg.package.json for engine-wasm (the only engine-wasm version source; engine-wasm/pkg/ is a gitignored CI build output, never commit it). engine-wasm is 0.x: a minor bump if its JS/DTO surface changed since the last bojtos-npm-v* tag, else a patch. Call out every determinism upgrade boundary since the last gateway tag in the PR body (RELEASE.md section 1a). Converge the PR and merge it (nano-bpm merges via a standalone `@mergifyio queue` comment). (2) From the merge commit on origin/main, run `make release-tags` (dry run), then `make release-tags PUSH=1`; it pushes one tag per push and confirms each release workflow started. Do not hand-push tags. (3) Verify per RELEASE.md section 4: `npm view @nanobpm/engine-wasm version` and the gateway's `fix(binary): bundle nanobpmn <version>` PR on jwulf/c8ctl-plugin-nano.",
         "repository": "nanobpm/nano-bpm",
         "baseBranch": "main"
       }
@@ -56,7 +56,7 @@
       "kind": "agent",
       "agent": {
         "jobType": "senior:feature",
-        "prompt": "In bojtos/bojtos-kit: bump @nanobpm/engine-wasm range (caret-trap check: must resolve to the new engine-wasm, not <0.4), build+test, cut @nanobpm/bojtos-kit (OIDC).",
+        "prompt": "In nanobpm/bojtos (one repo, semantic-release from .releaserc.json; bojtos-kit and bojtos-react are published together under one vX.Y.Z tag by scripts/release.mjs): bump the @nanobpm/engine-wasm range in bojtos-kit/package.json (and anywhere else it is declared) to the just-published version (0.x caret trap: ^0.11.0 does NOT admit 0.12.x, so the range must resolve to the new version), update lockfiles, build and test both packages, and land it with a conventional `feat:`/`fix:` PR title so semantic-release cuts a release on merge. Do not bump versions by hand. Wait for the release workflow to finish and confirm both @nanobpm/bojtos-kit and @nanobpm/bojtos-react were published at the new version.",
         "repository": "nanobpm/bojtos",
         "baseBranch": "main"
       }
@@ -86,16 +86,6 @@
           "exitCode": 0
         },
         "onTimeout": "escalate"
-      }
-    },
-    {
-      "id": "br-release",
-      "kind": "agent",
-      "agent": {
-        "jobType": "senior:feature",
-        "prompt": "In bojtos/bojtos-react: bump @nanobpm/bojtos-kit range, build+test, cut @nanobpm/bojtos-react (OIDC).",
-        "repository": "nanobpm/bojtos",
-        "baseBranch": "main"
       }
     },
     {
@@ -287,6 +277,28 @@
         "repository": "jwulf/urban-pr-review-codefirst",
         "baseBranch": "main"
       }
+    },
+    {
+      "id": "adopt-nage",
+      "kind": "agent",
+      "agent": {
+        "jobType": "senior:feature",
+        "prompt": "Sink: in nanobpm/nano-agent-graph-engine bump the @nanobpm/engine-wasm and @nanobpm/workflow ranges in package.json to the just-published versions (0.x caret trap: the range must resolve to the new version), update the lockfile, run the build and tests, and land it with a conventional `fix(deps):`/`feat(deps):` PR title. The repo releases with release-please: merge the resulting release-please PR; never bump versions by hand. Confirm the new @nanobpm/nano-agent-graph-engine version is published on npm.",
+        "repository": "nanobpm/nano-agent-graph-engine",
+        "baseBranch": "main"
+      }
+    },
+    {
+      "id": "nage-adopted",
+      "kind": "wait",
+      "wait": {
+        "kind": "command",
+        "target": "for u in @nanobpm/engine-wasm @nanobpm/workflow; do r=; for s in dependencies devDependencies peerDependencies; do r=$(npm view @nanobpm/nano-agent-graph-engine@latest $s.$u 2>/dev/null); [ -n \"$r\" ] && break; done; [ -z \"$r\" ] && { echo no declared range for $u in @nanobpm/nano-agent-graph-engine; exit 1; }; m=$(npm view \"$u@$r\" version 2>/dev/null | tail -1 | tr -d \"'\" | awk '{print $NF}'); l=$(npm view $u version 2>/dev/null); [ \"$m\" = \"$l\" ] || { echo $u: range $r resolves $m not latest $l; exit 1; }; done; echo OK: @nanobpm/nano-agent-graph-engine resolves forward",
+        "match": {
+          "exitCode": 0
+        },
+        "onTimeout": "escalate"
+      }
     }
   ],
   "edges": [
@@ -309,14 +321,6 @@
     {
       "from": "bk-release",
       "to": "bk-live"
-    },
-    {
-      "from": "bk-live.artifact",
-      "to": "br-release"
-    },
-    {
-      "from": "br-release",
-      "to": "br-live"
     },
     {
       "from": "urban-release",
@@ -415,6 +419,22 @@
     {
       "from": "urban-live.artifact",
       "to": "adopt-urban-pr-review"
+    },
+    {
+      "from": "bk-release",
+      "to": "br-live"
+    },
+    {
+      "from": "ew-live.artifact",
+      "to": "adopt-nage"
+    },
+    {
+      "from": "wf-live.artifact",
+      "to": "adopt-nage"
+    },
+    {
+      "from": "adopt-nage",
+      "to": "nage-adopted"
     }
   ]
 }

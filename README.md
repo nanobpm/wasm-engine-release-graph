@@ -18,9 +18,10 @@ The nano ecosystem roots in one Rust crate and fans out through **three differen
 
 | Train | Repo | Mechanism | Publishes |
 |---|---|---|---|
-| engine / bojtos | `nanobpm/nano-bpm` + `nanobpm/bojtos` | tag + `bojtos-release.mjs` (**OIDC** trusted publishing) | `engine-wasm`, `engine-testkit`, `bojtos-kit`, `bojtos-react` |
+| engine | `nanobpm/nano-bpm` | version-bump PR + `make release-tags` (see its RELEASE.md; **OIDC**) | gateway binary (→ c8ctl-plugin-nano), `engine-wasm`, `engine-testkit` |
+| bojtos | `nanobpm/bojtos` | semantic-release (kit + react under one tag) | `bojtos-kit`, `bojtos-react` |
 | urban | `nanobpm/nano-ide` | release-please (CI token) | `urban`, `workflow`, `urban-testkit` |
-| apps | `nano-workforce`, `console`, `urban-pr-review` | semantic-release / adopt PRs | the sinks |
+| apps | `nano-workforce`, `console`, `urban-pr-review`, `nano-agent-graph-engine` | semantic-release / release-please / adopt PRs | the sinks |
 
 All three trains now publish via **OIDC / CI tokens** — no interactive OTP — so every publish is
 automatable. The graph is therefore **fully agentic**; the human-in-the-loop is the single
@@ -54,9 +55,9 @@ no REST bridge, no stale drawing.
 
 ## The graph
 
-10 `agent` (automated release + adopt work) · 7 `wait` (npm registry-propagation gates) · 0
-`human` — every publish is OIDC/CI-token, so the whole runbook is automatable. Rendered view —
-[`docs/graph.mmd`](docs/graph.mmd):
+11 `agent` (automated release + adopt work) · 12 `wait` (npm registry-propagation and range-adoption gates) · 3
+`human` (console adopt review / missing-surface escalation). Every publish is OIDC/CI-token, so the release runbook itself is automatable. The overview below is simplified; the authoritative rendered view is
+[`docs/graph.mmd`](docs/graph.mmd) (derived from the graph):
 
 ```mermaid
 flowchart TD
@@ -121,12 +122,17 @@ point at a running Merlin instance:
 
 ```bash
 MERLIN_URL=http://127.0.0.1:3000 npm run preview     # validate + compile + show diagram/stops/effects (no side effects)
-MERLIN_URL=http://127.0.0.1:3000 npm run dispatch    # preview, then launch with the approval token
+MERLIN_URL=http://127.0.0.1:3000 npm run dispatch    # preview, stage, then launch with the approval token
 ```
 
-`preview` posts to `actions/delivery-graph/preview`; `dispatch` posts to `actions/delivery-graph/dispatch`
-digest as approval. A re-dispatch with the same graph is idempotent (short-circuits onto the
-in-flight run).
+`preview` posts to `actions/delivery-graph/preview`, which persists nothing. `dispatch` previews, then
+stages the same graph through `actions/compile-delivery-graph` (refusing if the staged digest differs
+from the previewed one), then posts the digest to `actions/delivery-graph/dispatch` as the approval.
+A re-dispatch with the same graph is idempotent (short-circuits onto the in-flight run).
+
+Point `MERLIN_URL` at nwf itself (port 3000, e.g. through `ssh -L 3000:localhost:3000 merlin.local`),
+not at the gateway on 8080: laying out this graph takes minutes, and the gateway's proxy gives up
+after 30 s with a 502.
 
 ## Single source of truth / no drift
 
