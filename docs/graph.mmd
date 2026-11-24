@@ -2,6 +2,7 @@ flowchart TD
   %% nano server release (gateway + engine-wasm) with conditional downstream adoption
   adopt-console["🤖 agent: adopt-console"]
   adopt-decision["🤖 agent: adopt-decision"]
+  adopt-done{{"⏳ wait: adopt-done"}}
   adopt-go{{"⏳ wait: adopt-go"}}
   adopt-nage["🤖 agent: adopt-nage"]
   adopt-nano-workforce["🤖 agent: adopt-nano-workforce"]
@@ -20,6 +21,7 @@ flowchart TD
   migrate-nano-workforce["🤖 agent: migrate-nano-workforce"]
   nage-adopted{{"⏳ wait: nage-adopted"}}
   nwf-adopted{{"⏳ wait: nwf-adopted"}}
+  release-done{{"⏳ wait: release-done"}}
   srv-live{{"⏳ wait: srv-live"}}
   srv-release["🤖 agent: srv-release"]
   urban-live{{"⏳ wait: urban-live"}}
@@ -62,3 +64,12 @@ flowchart TD
   bk-release --> br-live
   wf-live -- "artifact" --> adopt-nage
   adopt-nage --> nage-adopted
+  bk-adopted --> adopt-done
+  br-adopted --> adopt-done
+  ut-adopted --> adopt-done
+  console-adopted --> adopt-done
+  nwf-adopted --> adopt-done
+  adopt-urban-pr-review --> adopt-done
+  nage-adopted --> adopt-done
+  adopt-done --> release-done
+  adopt-skipped --> release-done

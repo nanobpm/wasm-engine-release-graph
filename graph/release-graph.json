@@ -341,6 +341,30 @@
         },
         "onTimeout": "escalate"
       }
+    },
+    {
+      "id": "adopt-done",
+      "kind": "wait",
+      "wait": {
+        "kind": "command",
+        "target": "echo downstream adoption complete",
+        "match": {
+          "exitCode": 0
+        },
+        "onTimeout": "escalate"
+      }
+    },
+    {
+      "id": "release-done",
+      "kind": "wait",
+      "wait": {
+        "kind": "command",
+        "target": "echo release complete",
+        "match": {
+          "exitCode": 0
+        },
+        "onTimeout": "escalate"
+      }
     }
   ],
   "edges": [
@@ -484,6 +508,42 @@
     {
       "from": "adopt-nage",
       "to": "nage-adopted"
+    },
+    {
+      "from": "bk-adopted",
+      "to": "adopt-done"
+    },
+    {
+      "from": "br-adopted",
+      "to": "adopt-done"
+    },
+    {
+      "from": "ut-adopted",
+      "to": "adopt-done"
+    },
+    {
+      "from": "console-adopted",
+      "to": "adopt-done"
+    },
+    {
+      "from": "nwf-adopted",
+      "to": "adopt-done"
+    },
+    {
+      "from": "adopt-urban-pr-review",
+      "to": "adopt-done"
+    },
+    {
+      "from": "nage-adopted",
+      "to": "adopt-done"
+    },
+    {
+      "from": "adopt-done",
+      "to": "release-done"
+    },
+    {
+      "from": "adopt-skipped",
+      "to": "release-done"
     }
   ]
 }
