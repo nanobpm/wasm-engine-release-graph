@@ -38,14 +38,20 @@ train of its own**: it is stamped from `server/Cargo.toml` and published from th
 (`server vX.Y.Z` ⇔ `engine-wasm X.Y.Z`). So there is one release event, and everything else is
 *adoption* of it. That is why this is one graph rather than an engine graph plus a downstream graph.
 
-Two consequences shape the graph:
+Three consequences shape the graph:
 
-- **Ranges are tilde, not caret.** The server is `0.0.x`, and on npm `^0.0.29` admits *only*
-  `0.0.29`. Consumers declare `~<version>` (`>=0.0.29 <0.1.0`), so a server patch flows through to
-  them without any adopt PR. The first publish under this scheme (`0.0.29`) is *lower* than the
-  retired train's `0.11.2`; consumers still on `^0.11` stay there until they move to the server
-  version.
-- **Adoption is conditional.** Because tilde ranges absorb patches, most server releases need
+- **The server jumps to v0.12.0.** The retired engine-wasm train already published 0.1.0–0.11.2,
+  while the server was at v0.0.28. Publishing engine-wasm 0.0.29 would be legal but *lower* than
+  0.11.2: `^0.11.2` consumers never see it, "highest version" resolution and Renovate/`npm outdated`
+  keep pointing at 0.11.2, and lower numbers like 0.2.0 collide with versions npm already holds. So
+  the first coupled release is **v0.12.0** (server and engine-wasm), and versions only go up from
+  there. `srv-release` enforces the floor: the next version must be above the highest published
+  engine-wasm.
+- **Ranges are caret on the minor.** From 0.12.0 on, `^0.12.0` = `~0.12.0` = `>=0.12.0 <0.13.0`,
+  so a server patch flows through to consumers without any adopt PR. (On `0.0.x`, `^0.0.29`
+  would have admitted *only* `0.0.29`, another reason not to stay there.) The first release
+  always adopts, since `^0.11.2` doesn't admit 0.12.0.
+- **Adoption is conditional.** Because the ranges absorb patches, most server releases need
   nothing downstream. The `adopt-decision` node runs the adoption train only when a consumer's
   range doesn't admit the new version, the engine-wasm public surface (TS/JS API, DTOs, FFI ABI)
   changed, or a PR in the release carries the `adopt-downstream` label.
@@ -85,8 +91,8 @@ flowchart TD
   adopt-decision -- "adopt = true" --> adopt-go{{"adopt-go"}}
   adopt-decision -- "default" --> adopt-skipped{{"adopt-skipped"}}
   subgraph downstream["adoption train (only when adopt = true)"]
-    et-release["🤖 engine-testkit: ~vX.Y.Z · cut"] --> et-live{{"⏳ engine-testkit live"}}
-    bk-release["🤖 bojtos-kit: ~vX.Y.Z · cut kit + react"] --> bk-live{{"⏳ bojtos-kit live"}}
+    et-release["🤖 engine-testkit: ^X.Y.Z · cut"] --> et-live{{"⏳ engine-testkit live"}}
+    bk-release["🤖 bojtos-kit: ^X.Y.Z · cut kit + react"] --> bk-live{{"⏳ bojtos-kit live"}}
     bk-release --> br-live{{"⏳ bojtos-react live"}}
     urban-release["🤖 cut urban"] --> urban-live{{"⏳ urban live"}}
     wf-bump["🤖 bump urban · cut workflow"] --> wf-live{{"⏳ workflow live"}}
