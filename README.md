@@ -1,10 +1,10 @@
 # wasm-engine-release-graph
 
-A **reusable, version-controlled [Nano Workforce](https://nanobpm.io) delivery graph** that
-orchestrates a coordinated release across the nano ecosystem: the WASM engine
-(`@nanobpm/engine-wasm`) and everything downstream of it, with each package's dependency bump
-applied **in topological order** and every cross-repo publish gated on the upstream actually being
-live on the registry.
+A **reusable, version-controlled [Nano Workforce](https://nanobpm.io) delivery graph** for a nano
+release: it cuts the **server release** (the gateway binary and, from the same `v*` tag,
+`@nanobpm/engine-wasm`), then decides whether the downstream ecosystem needs to adopt it, and only
+if so runs the **adoption train**. That train bumps each downstream dependency in topological order,
+and every cross-repo publish is gated on its upstream actually being live on the registry.
 
 This repo is **the process, as data**. The graph is authored once
 ([`graph/release-graph.json`](graph/release-graph.json)), checked in, reviewed like code, and
@@ -12,27 +12,43 @@ re-run every release — as opposed to Nano Workforce's built-in processes (merg
 plan-fanout) or its *one-shot* ad-hoc delivery graphs. It is the reference example of a
 **user-supplied, repeating delivery graph**.
 
+> **Requires https://github.com/nanobpm/nano-workforce/issues/1083.** The conditional adoption
+> train contains parallel forks/joins and nested splits, which the delivery-graph validator does not
+> accept yet. `npm run check` passes (shape); `d8ctl nwf graph compile` will fail until that ships.
+
 ## Why this exists
 
 The nano ecosystem roots in one Rust crate and fans out through **three different release systems**:
 
 | Train | Repo | Mechanism | Publishes |
 |---|---|---|---|
-| engine | `nanobpm/nano-bpm` | version-bump PR + `make release-tags` (see its RELEASE.md; **OIDC**) | gateway binary (→ c8ctl-plugin-nano), `engine-wasm`, `engine-testkit` |
+| server | `nanobpm/nano-bpm` | version-bump PR + `make release-tags` (see its RELEASE.md; **OIDC**) | gateway binary (→ c8ctl-plugin-nano), ProcessOS, `engine-wasm` (same version, same `v*` tag), `engine-testkit` |
 | bojtos | `nanobpm/bojtos` | semantic-release (kit + react under one tag) | `bojtos-kit`, `bojtos-react` |
 | urban | `nanobpm/nano-ide` | release-please (CI token) | `urban`, `workflow`, `urban-testkit` |
 | apps | `nano-workforce`, `console`, `urban-pr-review`, `nano-agent-graph-engine` | semantic-release / release-please / adopt PRs | the sinks |
 
-All three trains now publish via **OIDC / CI tokens** — no interactive OTP — so every publish is
+All three trains publish via **OIDC / CI tokens** — no interactive OTP — so every publish is
 automatable. The graph is therefore **fully agentic**; the human-in-the-loop is the single
 approval-token gate at dispatch (below), not a per-publish stop.
 
-Cutting a coordinated release is **not** just tagging — it is bumping each downstream dependency
-**range** in the right order and *proving the range resolves to the new upstream* before publishing
-the next layer. On `0.x`, `^0.3.0` means `>=0.3.0 <0.4.0`, so a minor bump silently strands
-consumers (this is a live problem: `bojtos-kit` pins `engine-wasm ^0.3.0` while `0.8.0` is
-published). This graph encodes that ordering and those gates so the sequence is reproducible instead
-of tribal knowledge.
+### One engine version (nano-bpm#1872)
+
+Since https://github.com/nanobpm/nano-bpm/pull/1872, `@nanobpm/engine-wasm` has **no version or
+train of its own**: it is stamped from `server/Cargo.toml` and published from the server's `v*` tag
+(`server vX.Y.Z` ⇔ `engine-wasm X.Y.Z`). So there is one release event, and everything else is
+*adoption* of it. That is why this is one graph rather than an engine graph plus a downstream graph.
+
+Two consequences shape the graph:
+
+- **Ranges are tilde, not caret.** The server is `0.0.x`, and on npm `^0.0.29` admits *only*
+  `0.0.29`. Consumers declare `~<version>` (`>=0.0.29 <0.1.0`), so a server patch flows through to
+  them without any adopt PR. The first publish under this scheme (`0.0.29`) is *lower* than the
+  retired train's `0.11.2`; consumers still on `^0.11` stay there until they move to the server
+  version.
+- **Adoption is conditional.** Because tilde ranges absorb patches, most server releases need
+  nothing downstream. The `adopt-decision` node runs the adoption train only when a consumer's
+  range doesn't admit the new version, the engine-wasm public surface (TS/JS API, DTOs, FFI ABI)
+  changed, or a PR in the release carries the `adopt-downstream` label.
 
 ## Prior art / lineage
 
@@ -55,51 +71,57 @@ no REST bridge, no stale drawing.
 
 ## The graph
 
-11 `agent` (automated release + adopt work) · 12 `wait` (npm registry-propagation and range-adoption gates) · 3
-`human` (console adopt review / missing-surface escalation). Every publish is OIDC/CI-token, so the release runbook itself is automatable. The overview below is simplified; the authoritative rendered view is
+12 `agent` (release, adoption decision, adopt work) · 14 `wait` (server-live, branch, npm
+registry-propagation and range-adoption gates) · 3 `human` (console adopt review / missing-surface
+escalation). The overview below is simplified; the authoritative rendered view is
 [`docs/graph.mmd`](docs/graph.mmd) (derived from the graph):
 
 ```mermaid
 flowchart TD
-  subgraph engine_bojtos["nanobpm/nano-bpm + bojtos — OIDC publishes"]
-    ew-release["🤖 tag engine-core · make console-wasm · cut engine-wasm"] --> ew-live{{"⏳ engine-wasm live"}}
-    et-release["🤖 bump engine-wasm range · cut engine-testkit"] --> et-live{{"⏳ engine-testkit live"}}
-    bk-release["🤖 bump engine-wasm (caret-trap check) · cut bojtos-kit"] --> bk-live{{"⏳ bojtos-kit live"}}
-    br-release["🤖 bump bojtos-kit range · cut bojtos-react"] --> br-live{{"⏳ bojtos-react live"}}
+  subgraph server["nanobpm/nano-bpm — server train (always)"]
+    srv-release["🤖 bump server version · make release-tags · gateway + engine-wasm vX.Y.Z"] --> srv-live{{"⏳ engine-wasm@vX.Y.Z live"}}
+    srv-live --> adopt-decision{"🤖 adopt? range / surface / label"}
   end
-  subgraph urban_train["nanobpm/nano-ide — release-please (CI token)"]
+  adopt-decision -- "adopt = true" --> adopt-go{{"adopt-go"}}
+  adopt-decision -- "default" --> adopt-skipped{{"adopt-skipped"}}
+  subgraph downstream["adoption train (only when adopt = true)"]
+    et-release["🤖 engine-testkit: ~vX.Y.Z · cut"] --> et-live{{"⏳ engine-testkit live"}}
+    bk-release["🤖 bojtos-kit: ~vX.Y.Z · cut kit + react"] --> bk-live{{"⏳ bojtos-kit live"}}
+    bk-release --> br-live{{"⏳ bojtos-react live"}}
     urban-release["🤖 cut urban"] --> urban-live{{"⏳ urban live"}}
     wf-bump["🤖 bump urban · cut workflow"] --> wf-live{{"⏳ workflow live"}}
-    ut-bump["🤖 JOIN: bump ew+et+urban · cut urban-testkit"] --> ut-live{{"⏳ urban-testkit live"}}
-  end
-  subgraph sinks["adopt PRs (agentic)"]
-    adopt-console["🤖 adopt-console"]
+    ut-bump["🤖 JOIN: engine-wasm + testkit + urban · cut urban-testkit"] --> ut-live{{"⏳ urban-testkit live"}}
+    adopt-console["🤖 adopt-console (bojtos only)"]
     adopt-nwf["🤖 adopt-nano-workforce"]
     adopt-upr["🤖 adopt-urban-pr-review"]
+    adopt-nage["🤖 adopt-nano-agent-graph-engine"]
   end
-  ew-live --> et-release
-  ew-live --> bk-release
-  bk-live --> br-release
-  ew-live --> ut-bump
+  adopt-go --> et-release
+  adopt-go --> bk-release
+  adopt-go --> urban-release
+  urban-live --> wf-bump
   et-live --> ut-bump
   urban-live --> ut-bump
   br-live --> adopt-console
-  ew-live --> adopt-console
   ut-live --> adopt-nwf
   wf-live --> adopt-nwf
   urban-live --> adopt-nwf
   urban-live --> adopt-upr
+  wf-live --> adopt-nage
 ```
 
 ### Node kinds
 
-- **🤖 `agent`** — a `senior:*` worker job does the work (bump the upstream range, catch the caret
-  trap, build + test, cut/publish via OIDC, or open the downstream adopt PR). Side-effecting.
-- **⏳ `wait`** — a durable `npm` readiness probe: block the next cut until the upstream version is
-  actually resolvable on the registry (the propagation-lag guard). Emits an `artifact` fact.
-- **🧑 `human`** — a scheduled user task. Not used here (every publish is automatable), but part of
-  the vocabulary: use it for any step that genuinely needs a person, answerable by a human *or* an
-  agent.
+- **🤖 `agent`** — a `senior:*` worker job does the work (cut the server release, decide on
+  adoption, bump a downstream range, build + test, cut/publish via OIDC, or open the downstream
+  adopt PR). Side-effecting, except `adopt-decision`, which is read-only and emits `adopt: boolean`.
+- **⏳ `wait`** — a durable readiness probe: `srv-live` checks that `@nanobpm/engine-wasm` is on npm
+  at the latest server release's version; the `*-live` `npm` probes block the next cut until the
+  upstream is resolvable on the registry (the propagation-lag guard) and emit an `artifact` fact;
+  the `*-adopted` command probes prove each consumer's range resolves forward. `adopt-go` and
+  `adopt-skipped` are pass-through branch markers.
+- **🧑 `human`** — scheduled user tasks, answerable by a human *or* an agent: reviewing the console
+  adopt PR, and escalating when the console needs an upstream API that doesn't exist yet (Mode D).
 
 Every `agent`/`connector` node is a **side effect**, so the whole graph is **parked at approval**
 until dispatched with its content-addressed approval token (see below) — that single gate is the

@@ -1,8 +1,11 @@
 flowchart TD
-  %% nano ecosystem release delivery graph
+  %% nano server release (gateway + engine-wasm) with conditional downstream adoption
   adopt-console["🤖 agent: adopt-console"]
+  adopt-decision["🤖 agent: adopt-decision"]
+  adopt-go{{"⏳ wait: adopt-go"}}
   adopt-nage["🤖 agent: adopt-nage"]
   adopt-nano-workforce["🤖 agent: adopt-nano-workforce"]
+  adopt-skipped{{"⏳ wait: adopt-skipped"}}
   adopt-urban-pr-review["🤖 agent: adopt-urban-pr-review"]
   bk-adopted{{"⏳ wait: bk-adopted"}}
   bk-live{{"⏳ wait: bk-live"}}
@@ -14,11 +17,11 @@ flowchart TD
   escalate-console-surface(["🧑 human: escalate-console-surface"])
   et-live{{"⏳ wait: et-live"}}
   et-release["🤖 agent: et-release"]
-  ew-live{{"⏳ wait: ew-live"}}
-  ew-release["🤖 agent: ew-release"]
   migrate-nano-workforce["🤖 agent: migrate-nano-workforce"]
   nage-adopted{{"⏳ wait: nage-adopted"}}
   nwf-adopted{{"⏳ wait: nwf-adopted"}}
+  srv-live{{"⏳ wait: srv-live"}}
+  srv-release["🤖 agent: srv-release"]
   urban-live{{"⏳ wait: urban-live"}}
   urban-release["🤖 agent: urban-release"]
   ut-adopted{{"⏳ wait: ut-adopted"}}
@@ -26,20 +29,22 @@ flowchart TD
   ut-live{{"⏳ wait: ut-live"}}
   wf-bump["🤖 agent: wf-bump"]
   wf-live{{"⏳ wait: wf-live"}}
-  ew-release --> ew-live
-  ew-live -- "artifact" --> et-release
+  srv-release --> srv-live
+  srv-live --> adopt-decision
+  adopt-decision -- "adopt == true" --> adopt-go
+  adopt-decision -- "default" --> adopt-skipped
+  adopt-go --> urban-release
+  adopt-go --> et-release
   et-release --> et-live
-  ew-live -- "artifact" --> bk-release
+  adopt-go --> bk-release
   bk-release --> bk-live
   urban-release --> urban-live
   urban-live -- "artifact" --> wf-bump
   wf-bump --> wf-live
-  ew-live -- "artifact" --> ut-bump
   et-live -- "artifact" --> ut-bump
   urban-live -- "artifact" --> ut-bump
   ut-bump --> ut-live
   br-live -- "artifact" --> adopt-console
-  ew-live -- "artifact" --> adopt-console
   adopt-console -- "surface == 'missing'" --> escalate-console-surface
   adopt-console -- "default" --> console-adopt-review
   escalate-console-surface --> console-adopted
@@ -55,6 +60,5 @@ flowchart TD
   migrate-nano-workforce --> nwf-adopted
   urban-live -- "artifact" --> adopt-urban-pr-review
   bk-release --> br-live
-  ew-live -- "artifact" --> adopt-nage
   wf-live -- "artifact" --> adopt-nage
   adopt-nage --> nage-adopted
